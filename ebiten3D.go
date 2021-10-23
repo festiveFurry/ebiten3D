@@ -106,7 +106,7 @@ func (A *matrix) mulAdd3(n1, n2, n3 float32){
 	}
 }
 
-//matrix multiplication function
+// matrix multiplication function
 func mulMat(x, y matrix) matrix {
 	out := make([][]float32, len(x.a))
 	for i := 0; i < len(x.a); i++ {
@@ -151,24 +151,24 @@ func drawLine(screen *ebiten.Image, x1, y1, x2, y2 float32, color color.NRGBA){
 }
 
 func fillTriangle(screen *ebiten.Image, x1, y1, x2, y2, x3, y3 float32, color color.NRGBA){
-	//get length of all sides
+	// get length of all sides
 	d1 := math.Sqrt(float64(((y2-y1)*(y2-y1))+((x2-x1)*(x2-x1))))
 	d2 := math.Sqrt(float64(((y3-y2)*(y3-y2))+((x3-x2)*(x3-x2))))
 	d3 := math.Sqrt(float64(((y1-y3)*(y1-y3))+((x1-x3)*(x1-x3))))
 	counter := 0
-	if d1<d2 || d1==d2 && d1<d2 || d1==d2{ //the first side is the shortest
+	if d1<d2 || d1==d2 && d1<d2 || d1==d2{ // the first side is the shortest
 		var tx float64 = float64(x1)
 		var ty float64 = float64(y1)
 		vx := float64(x2-x1)/d1
 		vy := float64(y2-y1)/d1
 		for float64(counter) < d1 {
 			drawLine(screen, float32(x3), float32(y3), float32(tx), float32(ty), color)
-			//drawing a line from point(x3,y3) to point(tx,ty).
+			// drawing a line from point(x3,y3) to point(tx,ty).
 			tx = float64(tx) + vx
 			ty = float64(ty) + vy
 			counter = counter + 1
 		} 
-	}else if d2<d3 || d2==d3{ //the second side is the shortest
+	}else if d2<d3 || d2==d3{ // the second side is the shortest
 		var tx float64 = float64(x2)
 		var ty float64 = float64(y2)
 		vx := float64(x3-x2)/d2
@@ -194,13 +194,14 @@ func fillTriangle(screen *ebiten.Image, x1, y1, x2, y2, x3, y3 float32, color co
 
 }
 
-func Q_rsqrt(number float32) float32{
+// the quick reverse square root of x (1/sqrt(x)) from quake 2 implemetation in golang, made by me
+func Q_rsqrt(x float32) float32{
 	var i int32
 	var x2, y float32
 	const threehalfs = 1.5
 	
-	x2 = number*0.5
-	y = number
+	x2 = x*0.5
+	y = x
 	i = *(*int32)(unsafe.Pointer(&y)) // evil floating point bit hack
 	i = 0x5f3759df - (i>>1) // what the fuck?
 	y = *(*float32)(unsafe.Pointer(&i))
@@ -210,6 +211,7 @@ func Q_rsqrt(number float32) float32{
 	return y
 }
 
+// some variables necessary for the rendering
 var shapeOffset, light_direction vec3d
 var w, h int
 var rX, rY, rZ float64
@@ -225,10 +227,7 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 	screen.Clear()
-	//ebitenutil.DebugPrint(screen, "Hello, World!")
-	//ebitenutil.DrawLine(screen, 1, 1, 100, 200, color.NRGBA{0x80, 0x80, 0xff, 0x80})
-    // Write your game's logical update.
-	//
+	
 	// setup and calculate the rotation matrices
 	rotateX := newMatrix(3, 3)
 	rotateX.a[0] = []float32{1, 0, 0}
@@ -242,24 +241,29 @@ func update(screen *ebiten.Image) error {
 	rotateZ.a[0] = []float32{cos(rZ), -sin(rZ), 0}
 	rotateZ.a[1] = []float32{sin(rZ), cos(rZ), 0}
 	rotateZ.a[2] = []float32{0, 0, 1}
+	
 	// update the rotation angles
 	rX += 0.01
-	rY += 0.01
+	rY += 0.0
 	rZ += 0.01
+	
 	// multiply the shape by the rotation matrices
 	x := mulMat(m, rotateX)
-	//x = mulMat(x, rotateY)
+	x = mulMat(x, rotateY)
 	x = mulMat(x, rotateZ)
 	x.mulAdd3(shapeOffset.x, shapeOffset.y, shapeOffset.z)
+	
 	// do some division by z to get perspective
 	for i, v := range x.a{
 		x.a[i][0] = v[0]/v[2]
 		x.a[i][1] = v[1]/v[2]
 	}
+	
 	// setup our crude render matrix
 	n := newMatrix(3, 2)
 	n.a[0] = []float32{1, 0}
 	n.a[1] = []float32{0, 1}
+	
 	// render it out as a complete shape rather than just plain points
 	fmt.Println("NORMALS: ")
 	for _, v := range mesh.a{
@@ -289,11 +293,13 @@ func update(screen *ebiten.Image) error {
 		y3 = x.a[int(v[2]-1)][1]*(float32(h)/8)+(float32(h)/2)
 		//var dP float32 = normal.x*(x.a[int(v[0]-1)][0] - vCamera.x) + normal.y*(x.a[int(v[0]-1)][1] - vCamera.y) + normal.z*(x.a[int(v[0]-1)][2] - vCamera.z)
 		if(normal.z<0){
+			
 			// Illumination
 			l = Q_rsqrt(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z)
 			light_direction.x *= l
 			light_direction.y *= l
 			light_direction.z *= l
+			
 			// How similar is normal to light direction
 			dp := normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z
 			fmt.Println(dp)
@@ -304,35 +310,30 @@ func update(screen *ebiten.Image) error {
 			if 1==0{fmt.Println(c)}
 			fillTriangle(screen, x1, y1, x2, y2, x3, y3, c)
 		}
-		
-		//newTriangle(screen, x1, y1, x2, y2, x3, y3, color.NRGBA{0xff, 0xff, 0xff, 0xff})
-		
-		//fmt.Println(normal.z)
-		//fmt.Println(z.a[int(v[0]-1)])
-		//ebitenutil.DebugPrintAt(screen, string(i), 10, 10)
 	}
-	//fmt.Println(w, h)
-	//fmt.Println(rX, rY, rZ)
-	//fmt.Println(m.a)
     return nil
 }
 
 func main(){
-	w, h = 200, 150
-	n := float64(4)
+	w, h = 800, 600
+	n := float64(1)
 	shapeOffset = vec3d{0, 0, 1}
+	
 	// specify the light direction
 	light_direction = vec3d{ -1, 0, -.5 }
+	
 	// setup rotation angles for the shape
 	rX = 0
 	rY = 0
 	rZ = 0
+	
 	// specify the color of our cube
 	cR = 128
 	cG = 128
 	cB = 255
 	cA = 0xff
-	// setup the shape vertices themselves(cube shape in this case)
+	
+	// setup the shape vertices themselves(cube shape in this case, center in the middle)
 	m = newMatrix(9, 3)
 	m.a[0] = []float32{-0.5, -0.5, -0.5}
 	m.a[1] = []float32{0.5, -0.5, -0.5}
@@ -343,7 +344,8 @@ func main(){
 	m.a[6] = []float32{-0.5, 0.5, 0.5}
 	m.a[7] = []float32{0.5, 0.5, 0.5}
 	//m.a[8] = []float32{0, 1.5, 0}
-	// setup the mesh of the shape(used for rendering it out as a whole shape, not only point)
+	
+	// setup the mesh of the shape(used for rendering it out as a whole shape, not only the points)
 	mesh = newMatrix(12, 3)
 	mesh.a[0] = []float32{2, 1, 3}
 	mesh.a[1] = []float32{3, 4, 2}
